@@ -10,3 +10,4 @@ Please enumerate the references you used in a list here:
 - [Iterating through runes](https://stackoverflow.com/questions/18130859/how-can-i-iterate-over-a-string-by-runes-in-go)
 - [Get rune length](https://www.tutorialspoint.com/golang-program-to-find-the-length-of-a-string)
 - [Testing echo apis](https://echo.labstack.com/docs/testing)
+- [Anonymous structs](https://www.willem.dev/articles/anonymous-structs/#:~:text=You%20can%20also%20define%20them,to%20use%20an%20anonymous%20struct.)

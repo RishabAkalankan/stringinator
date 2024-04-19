@@ -6,6 +6,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// type RequestIdHook struct{}
+
+// func (h RequestIdHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+// 	fmt.Println("hello")
+// 	reqId := uuid.New().String()
+// 	e.Str("request-id", reqId)
+// }
+
 var globalLogger zerolog.Logger
 
 func Initialize() {

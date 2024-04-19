@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"unicode/utf8"
 
@@ -17,7 +16,9 @@ type StringRequest struct {
 }
 
 type StatsData struct {
-	Inputs map[string]int `json:"inputs"`
+	Inputs               map[string]int `json:"inputs"`
+	MostPopular          string         `json:"most_popular"`
+	LongestInputReceived string         `json:"longest_input_received"`
 }
 
 type InputStats struct {
@@ -37,7 +38,6 @@ func Stringinate(c echo.Context) (err error) {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(request_data); err != nil {
-		fmt.Println(err)
 		logger.Errorf("validation failed. %+v", err)
 		return echo.NewHTTPError(http.StatusBadRequest, map[string]string{
 			"message": "validation failed.'input' is a required parameter",
@@ -46,7 +46,7 @@ func Stringinate(c echo.Context) (err error) {
 	frequentlyOccurringCharacters, times := getMostOccurringCharacters(request_data.Input)
 	saveUserInputs(request_data.Input)
 
-	//consider only the runes and not the string
+	//considers each character as one rune
 	response := InputStats{Value: request_data.Input,
 		Length:   utf8.RuneCountInString(request_data.Input),
 		Insights: Insights{MostOccuringLetters: frequentlyOccurringCharacters, Occurrences: times}}
@@ -54,18 +54,51 @@ func Stringinate(c echo.Context) (err error) {
 }
 
 func GetStats(c echo.Context) (err error) {
-	return c.JSON(http.StatusOK, StatsData{seen_strings})
+	mostpopular, longestInput := getMostPopularAndLongestInputReceived()
+	return c.JSON(http.StatusOK, StatsData{Inputs: seen_strings, MostPopular: mostpopular, LongestInputReceived: longestInput})
 }
 
 func GetWelcomeMessage(c echo.Context) (err error) {
-	return c.HTML(http.StatusOK, `
-		<pre>
-		Welcome to the Stringinator 3000 for all of your string manipulation needs.
-		GET / - You're already here!
-		POST /stringinate - Get all of the info you've ever wanted about a string. Takes JSON of the following form: {"input":"your-string-goes-here"}
-		GET /stats - Get statistics about all strings the server has seen, including the longest and most popular strings.
-		</pre>
-	`)
+	welcomeMessage := `
+	<pre>
+	Welcome to the Stringinator 3000 for all of your string manipulation needs.
+	GET / - You're already here!
+	POST /stringinate - Get all of the info you've ever wanted about a string. Takes JSON of the following form: {"input":"your-string-goes-here"}
+	GET /stats - Get statistics about all strings the server has seen, including the longest and most popular strings.
+	</pre>
+`
+	return c.HTML(http.StatusOK, welcomeMessage)
+}
+
+func getMostPopularAndLongestInputReceived() (string, string) {
+	var statistics struct {
+		value              string
+		maxNoOfTimesCalled int
+	} = struct {
+		value              string
+		maxNoOfTimesCalled int
+	}{value: "", maxNoOfTimesCalled: 0}
+
+	var lengthStatistics struct {
+		value  string
+		length int
+	} = struct {
+		value  string
+		length int
+	}{value: "", length: 0}
+
+	for k, v := range seen_strings {
+		lengthOfInput := utf8.RuneCountInString(k)
+		if lengthOfInput > lengthStatistics.length {
+			lengthStatistics.length = lengthOfInput
+			lengthStatistics.value = k
+		}
+		if v > statistics.maxNoOfTimesCalled {
+			statistics.maxNoOfTimesCalled = v
+			statistics.value = k
+		}
+	}
+	return statistics.value, lengthStatistics.value
 }
 
 func getMostOccurringCharacters(input string) ([]string, int) {

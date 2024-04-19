@@ -99,3 +99,95 @@ func Test_StringinateUsingGetMethodReturnsProperResponse(t *testing.T) {
 	assert.Contains(t, resp.Insights.MostOccuringLetters, "t")
 	assert.Equal(t, resp.Insights.Occurrences, 2)
 }
+
+func Test_getMostPopularAndLongestInputReceivedReturnsResponseProperly(t *testing.T) {
+	seen_strings = map[string]int{
+		"David Warner":        15,
+		"Jos Buttler":         10,
+		"Abraham de Villiers": 12,
+	}
+
+	popular, longest := getMostPopularAndLongestInputReceived()
+	assert.Equal(t, "David Warner", popular)
+	assert.Equal(t, "Abraham de Villiers", longest)
+}
+
+func Test_getMostPopularAndLongestInputReceivedReturnsSameName(t *testing.T) {
+	seen_strings = map[string]int{
+		"David Warner":        15,
+		"Jos Buttler":         10,
+		"Abraham de Villiers": 17,
+	}
+
+	popular, longest := getMostPopularAndLongestInputReceived()
+	assert.Equal(t, "Abraham de Villiers", popular)
+	assert.Equal(t, "Abraham de Villiers", longest)
+}
+
+func Test_GetStatsReturnsProperResponse(t *testing.T) {
+	e := echo.New()
+	e.Validator = &iv.InputValidator{Validator: validator.New()}
+
+	seen_strings = map[string]int{
+		"David Warner":        20,
+		"Jos Buttler":         10,
+		"Abraham de Villiers": 17,
+	}
+
+	req := httptest.NewRequest("GET", "/stats", nil)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	err := GetStats(c)
+	assert.Nil(t, err)
+	expectedResponse := `{"inputs":{"Abraham de Villiers":17,"David Warner":20,"Jos Buttler":10},"most_popular":"David Warner","longest_input_received":"Abraham de Villiers"}`
+	var expectedRespMap map[string]interface{}
+	json.Unmarshal([]byte(expectedResponse), &expectedRespMap)
+	var actualMap map[string]interface{}
+	json.Unmarshal(rec.Body.Bytes(), &actualMap)
+	assert.Equal(t, expectedRespMap, actualMap)
+}
+
+func Test_GetStatsReturnsSameNameForLongestAndPopularStrings(t *testing.T) {
+	e := echo.New()
+	e.Validator = &iv.InputValidator{Validator: validator.New()}
+
+	seen_strings = map[string]int{
+		"David Warner":        12,
+		"Jos Buttler":         10,
+		"Abraham de Villiers": 17,
+	}
+
+	req := httptest.NewRequest("GET", "/stats", nil)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	err := GetStats(c)
+	assert.Nil(t, err)
+	expectedResponse := `{"inputs":{"Abraham de Villiers":17,"David Warner":12,"Jos Buttler":10},"most_popular":"Abraham de Villiers","longest_input_received":"Abraham de Villiers"}`
+	var expectedRespMap map[string]interface{}
+	json.Unmarshal([]byte(expectedResponse), &expectedRespMap)
+	var actualMap map[string]interface{}
+	json.Unmarshal(rec.Body.Bytes(), &actualMap)
+	assert.Equal(t, expectedRespMap, actualMap)
+}
+
+func Test_GetWelcomeMessageReturnsProperMessage(t *testing.T) {
+	e := echo.New()
+
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set(echo.HeaderContentType, echo.MIMETextHTML)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	err := GetWelcomeMessage(c)
+	assert.Nil(t, err)
+	expectedMessage := `
+	<pre>
+	Welcome to the Stringinator 3000 for all of your string manipulation needs.
+	GET / - You're already here!
+	POST /stringinate - Get all of the info you've ever wanted about a string. Takes JSON of the following form: {"input":"your-string-goes-here"}
+	GET /stats - Get statistics about all strings the server has seen, including the longest and most popular strings.
+	</pre>
+`
+	assert.Equal(t, expectedMessage, rec.Body.String())
+}

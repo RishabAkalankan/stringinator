@@ -13,7 +13,6 @@ func Start() {
 	e.Validator = &iv.InputValidator{Validator: validator.New()}
 
 	//middleware for logging the incoming request
-	//TODO: Print the request body for debugging purposes
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogURI:    true,
 		LogStatus: true,
