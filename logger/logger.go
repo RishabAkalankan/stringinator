@@ -9,13 +9,17 @@ import (
 var globalLogger zerolog.Logger
 
 func Initialize() {
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	logger := zerolog.New(os.Stderr).With().Str("application", "stringinator").Timestamp().Logger()
 	globalLogger = logger
 	globalLogger.Info().Msg("Logger Initialised")
 }
 
 func Infof(message string, args ...interface{}) {
 	globalLogger.Info().Msgf(message, args...)
+}
+
+func Warnf(message string, args ...interface{}) {
+	globalLogger.Warn().Msgf(message, args...)
 }
 
 func Errorf(message string, args ...interface{}) {
