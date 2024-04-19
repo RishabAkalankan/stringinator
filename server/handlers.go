@@ -1,9 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
+	"unicode/utf8"
 
 	"github.com/RishabAkalankan/stringinator/logger"
+	"github.com/RishabAkalankan/stringinator/utils"
 	"github.com/labstack/echo/v4"
 )
 
@@ -11,11 +14,6 @@ var seen_strings map[string]int = make(map[string]int)
 
 type StringRequest struct {
 	Input string `param:"input" query:"input" form:"input" json:"input" xml:"input" validate:"required,min=1"`
-}
-
-type StringData struct {
-	Input  string `param:"input" query:"input" form:"input" json:"input" xml:"input" validate:"required,min=1"`
-	Length int    `json:"length"`
 }
 
 type StatsData struct {
@@ -39,14 +37,20 @@ func Stringinate(c echo.Context) (err error) {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	if err := c.Validate(request_data); err != nil {
+		fmt.Println(err)
 		logger.Errorf("validation failed. %+v", err)
 		return echo.NewHTTPError(http.StatusBadRequest, map[string]string{
 			"message": "validation failed.'input' is a required parameter",
 		})
 	}
-	remember(request_data.Input)
-	response_data := StringData{request_data.Input, len(request_data.Input)}
-	return c.JSON(http.StatusOK, response_data)
+	frequentlyOccurringCharacters, times := getMostOccurringCharacters(request_data.Input)
+	saveUserInputs(request_data.Input)
+
+	//consider only the runes and not the string
+	response := InputStats{Value: request_data.Input,
+		Length:   utf8.RuneCountInString(request_data.Input),
+		Insights: Insights{MostOccuringLetters: frequentlyOccurringCharacters, Occurrences: times}}
+	return c.JSON(http.StatusOK, response)
 }
 
 func GetStats(c echo.Context) (err error) {
@@ -64,7 +68,35 @@ func GetWelcomeMessage(c echo.Context) (err error) {
 	`)
 }
 
-func remember(input string) {
+func getMostOccurringCharacters(input string) ([]string, int) {
+	strippedInput := utils.StripWhiteSpacesAndPunctuations(input)
+	characterToOccurrenceMap := make(map[string]int)
+	for _, c := range strippedInput {
+		if _, ok := characterToOccurrenceMap[string(c)]; ok {
+			characterToOccurrenceMap[string(c)] = characterToOccurrenceMap[string(c)] + 1
+			continue
+		}
+		characterToOccurrenceMap[string(c)] = 1
+	}
+	occurrenceTocharactersMap := make(map[int][]string)
+	maxLengthArray := 0
+	for k, v := range characterToOccurrenceMap {
+		if _, ok := occurrenceTocharactersMap[v]; ok {
+			occurrenceTocharactersMap[v] = append(occurrenceTocharactersMap[v], k)
+			if v > maxLengthArray {
+				maxLengthArray = v
+			}
+			continue
+		}
+		occurrenceTocharactersMap[v] = []string{k}
+		if v > maxLengthArray {
+			maxLengthArray = v
+		}
+	}
+	return occurrenceTocharactersMap[maxLengthArray], maxLengthArray
+}
+
+func saveUserInputs(input string) {
 	if seen_strings[input] == 0 {
 		seen_strings[input] = 1
 	} else {
