@@ -3,6 +3,7 @@ package logger
 import (
 	"os"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
@@ -15,10 +16,11 @@ import (
 // }
 
 var globalLogger zerolog.Logger
+var initalLogger zerolog.Logger
 
 func Initialize() {
-	logger := zerolog.New(os.Stderr).With().Str("application", "stringinator").Timestamp().Logger()
-	globalLogger = logger
+	initalLogger = zerolog.New(os.Stderr).With().Str("application", "stringinator").Timestamp().Logger()
+	globalLogger = initalLogger
 	globalLogger.Info().Msg("Logger Initialised")
 }
 
@@ -36,4 +38,9 @@ func Errorf(message string, args ...interface{}) {
 
 func Fatalf(message string, args ...interface{}) {
 	globalLogger.Fatal().Msgf(message, args...)
+}
+
+func UpdateRequestId() {
+	reqId := uuid.New().String()
+	globalLogger = initalLogger.With().Str("request-id", reqId).Logger()
 }
