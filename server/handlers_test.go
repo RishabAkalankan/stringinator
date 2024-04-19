@@ -70,7 +70,7 @@ func Test_StringinateUsingPostMethodReturnsProperResponse(t *testing.T) {
 	err := Stringinate(c)
 	assert.Nil(t, err)
 	//expected response - `{"value":"David Warner","length":12,"insights":{"mostOccuringLetters":["r","a"],"occurrences":2}}`
-	var resp InputStats
+	var resp StringinatorResponse
 	json.Unmarshal(rec.Body.Bytes(), &resp)
 	assert.Equal(t, "David Warner", resp.Value)
 	assert.Equal(t, 12, resp.Length)
@@ -92,7 +92,7 @@ func Test_StringinateUsingGetMethodReturnsProperResponse(t *testing.T) {
 	err := Stringinate(c)
 	assert.Nil(t, err)
 	//expected response - `{"value":"Jos Buttler","length":11,"insights":{"mostOccuringLetters":["t"],"occurrences":2}}`
-	var resp InputStats
+	var resp StringinatorResponse
 	json.Unmarshal(rec.Body.Bytes(), &resp)
 	assert.Equal(t, "Jos Buttler", resp.Value)
 	assert.Equal(t, 11, resp.Length)

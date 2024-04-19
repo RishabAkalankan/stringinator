@@ -11,7 +11,7 @@ import (
 
 var seen_strings map[string]int = make(map[string]int)
 
-type StringRequest struct {
+type Request struct {
 	Input string `param:"input" query:"input" form:"input" json:"input" xml:"input" validate:"required,min=1"`
 }
 
@@ -21,7 +21,7 @@ type StatsData struct {
 	LongestInputReceived string         `json:"longest_input_received"`
 }
 
-type InputStats struct {
+type StringinatorResponse struct {
 	Value    string   `json:"value"`
 	Length   int      `json:"length"`
 	Insights Insights `json:"insights"`
@@ -31,8 +31,9 @@ type Insights struct {
 	Occurrences         int      `json:"occurrences"`
 }
 
+// Stringinate accepts input string and then returns the length, most occurring characters and how many times the characters appear in the string
 func Stringinate(c echo.Context) (err error) {
-	request_data := new(StringRequest)
+	request_data := new(Request)
 	if err = c.Bind(request_data); err != nil {
 		logger.Errorf("binding failed. %+v", err)
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
@@ -47,17 +48,22 @@ func Stringinate(c echo.Context) (err error) {
 	saveUserInputs(request_data.Input)
 
 	//considers each character as one rune
-	response := InputStats{Value: request_data.Input,
+	response := StringinatorResponse{Value: request_data.Input,
 		Length:   utf8.RuneCountInString(request_data.Input),
 		Insights: Insights{MostOccuringLetters: frequentlyOccurringCharacters, Occurrences: times}}
 	return c.JSON(http.StatusOK, response)
 }
 
+// GetStats returns the stats such as
+//1. the list of inputs that the server has received at that point of time
+//2. most popular words
+//3. longest input received
 func GetStats(c echo.Context) (err error) {
 	mostpopular, longestInput := getMostPopularAndLongestInputReceived()
 	return c.JSON(http.StatusOK, StatsData{Inputs: seen_strings, MostPopular: mostpopular, LongestInputReceived: longestInput})
 }
 
+// GetWelcomeMessage returns HTML response containing the different endpoints this application exposes
 func GetWelcomeMessage(c echo.Context) (err error) {
 	welcomeMessage := `
 	<pre>
